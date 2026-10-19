@@ -1,0 +1,43 @@
+{
+  "incident_id": "INC-00018198",
+  "confidence": 1.0,
+  "contributing_event_ids": [
+    18198,
+    56335,
+    57492
+  ],
+  "time_window": {
+    "start": "row_index",
+    "end": "row_index"
+  },
+  "trace": {
+    "model": "random_forest",
+    "top_features": [
+      {
+        "feature": "ct_dst_src_ltm",
+        "importance": 0.0943,
+        "observed_value": 35.0
+      },
+      {
+        "feature": "sttl",
+        "importance": 0.0842,
+        "observed_value": 254.0
+      },
+      {
+        "feature": "ct_state_ttl",
+        "importance": 0.0616,
+        "observed_value": 2.0
+      },
+      {
+        "feature": "sbytes",
+        "importance": 0.0594,
+        "observed_value": 114.0
+      },
+      {
+        "feature": "ct_dst_sport_ltm",
+        "importance": 0.0593,
+        "observed_value": 17.0
+      }
+    ]
+  }
+}
