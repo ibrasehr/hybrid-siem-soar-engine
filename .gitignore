@@ -1,4 +1,5 @@
 .venv/
 data/
 *.csv
+!results/*.csv
 __pycache__/
