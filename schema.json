@@ -7,7 +7,8 @@
     "confidence",
     "contributing_event_ids",
     "time_window",
-    "trace"
+    "trace",
+    "ground_truth_family"
   ],
   "additionalProperties": false,
   "properties": {
@@ -29,14 +30,18 @@
       "type": "object",
       "required": [
         "start",
-        "end"
+        "end",
+        "basis"
       ],
       "properties": {
         "start": {
-          "type": ["string", "number"]
+          "type": "integer"
         },
         "end": {
-          "type": ["string", "number"]
+          "type": "integer"
+        },
+        "basis": {
+          "type": "string"
         }
       }
     },
@@ -44,18 +49,26 @@
       "type": "object",
       "required": [
         "model",
+        "threshold",
         "rules_fired",
+        "method",
         "top_features"
       ],
       "properties": {
         "model": {
           "type": "string"
         },
+        "threshold": {
+          "type": "number"
+        },
         "rules_fired": {
           "type": "array",
           "items": {
             "type": "string"
           }
+        },
+        "method": {
+          "type": "string"
         },
         "top_features": {
           "type": "array",
@@ -64,7 +77,8 @@
             "required": [
               "feature",
               "importance",
-              "observed_value"
+              "observed_value",
+              "z_score"
             ],
             "properties": {
               "feature": {
@@ -75,11 +89,18 @@
               },
               "observed_value": {
                 "type": "number"
+              },
+              "z_score": {
+                "type": "number"
               }
             }
           }
         }
       }
+    },
+    "ground_truth_family": {
+      "type": "string",
+      "description": "evaluation_only"
     }
   }
 }
