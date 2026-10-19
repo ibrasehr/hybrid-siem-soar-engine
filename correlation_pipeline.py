@@ -16,6 +16,7 @@ For UNSW-NB15 use UNSW_NB15_training-set.csv with --label-col attack_cat --benig
 """
 import argparse
 import json
+import os
 import time
 
 import numpy as np
@@ -23,6 +24,27 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix, precision_score
 from sklearn.model_selection import train_test_split
+
+
+def get_system_specs():
+    cpu = "Unknown"
+    ram = "Unknown"
+    try:
+        import winreg
+        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\CentralProcessor\0")
+        cpu = winreg.QueryValueEx(key, "ProcessorNameString")[0].strip()
+    except Exception:
+        import platform
+        cpu = platform.processor() or "Unknown"
+
+    try:
+        import ctypes
+        mem = ctypes.c_ulonglong()
+        if ctypes.windll.kernel32.GetPhysicallyInstalledSystemMemory(ctypes.byref(mem)):
+            ram = f"{mem.value / (1024**2):.2f} GB"
+    except Exception:
+        pass
+    return cpu, ram
 
 THRESHOLDS = [0.1, 0.3, 0.5, 0.7, 0.9]
 
@@ -75,23 +97,30 @@ def sweep(y_true, scores, name):
     return pd.DataFrame(rows)
 
 
-def measure_speed(rf, X, batch_sizes=(100, 1000, 10000)):
+def measure_speed(rf, X, batch_sizes=(100, 1000, 10000), runs=5):
     out = []
     for b in batch_sizes:
         if b > len(X):
             continue
         batch = X.iloc[:b]
-        t0 = time.perf_counter()
-        rf.predict_proba(batch)
-        dt = time.perf_counter() - t0
-        out.append({"batch": b, "seconds": dt, "events_per_sec": b / dt,
-                    "ms_per_event": 1000 * dt / b})
+        speeds = []
+        for _ in range(runs):
+            t0 = time.perf_counter()
+            rf.predict_proba(batch)
+            dt = time.perf_counter() - t0
+            speeds.append(b / dt)
+        out.append({
+            "batch": b,
+            "mean_events_per_sec": float(np.mean(speeds)),
+            "min_events_per_sec": float(np.min(speeds)),
+            "max_events_per_sec": float(np.max(speeds)),
+        })
     return pd.DataFrame(out)
 
 
-def drift_test(df, features, rf_params):
+def drift_test(df, features, rf_params, benign="BENIGN"):
     """Leave-one-family-out: train without family F, test on F + benign."""
-    attacks = [f for f in df["family"].unique() if f.lower() != "benign"]
+    attacks = [f for f in df["family"].unique() if f.lower() != benign.lower()]
     rows = []
     benign_test = df[df["is_attack"] == 0].sample(frac=0.3, random_state=0)
     benign_train = df[df["is_attack"] == 0].drop(benign_test.index)
@@ -133,9 +162,16 @@ def main():
     ap.add_argument("--label-col", default=" Label")
     ap.add_argument("--benign", default="BENIGN")
     ap.add_argument("--sample", type=int, default=200000, help="max rows to use")
+    ap.add_argument("--ablate", default="", help="comma-separated feature names to drop before training")
     args = ap.parse_args()
 
     df, features = load(args.csv, args.label_col, args.benign)
+    if args.ablate:
+        to_drop = [f.strip() for f in args.ablate.split(",") if f.strip()]
+        features = [f for f in features if f not in to_drop]
+        print(f"Ablated features: {to_drop}")
+        print(f"Remaining features ({len(features)}): {features}\n")
+
     if len(df) > args.sample:
         df = df.sample(args.sample, random_state=42).reset_index(drop=True)
     print(f"Rows: {len(df)}  Features: {len(features)}")
@@ -158,11 +194,21 @@ def main():
     print(results.round(4).to_string(index=False), "\n")
 
     print("== Speed on this machine (Pillar 1) ==")
-    print(measure_speed(rf, test[features]).round(4).to_string(index=False), "\n")
+    cpu, ram = get_system_specs()
+    print(f"CPU Model: {cpu}")
+    print(f"RAM: {ram}")
+    speed_df = measure_speed(rf, test[features])
+    print(speed_df.round(4).to_string(index=False), "\n")
 
     print("== Drift: leave-one-family-out (Pillar 2) ==")
-    print(drift_test(df, features, rf_params).round(4).to_string(index=False), "\n")
+    drift_df = drift_test(df, features, rf_params, args.benign)
+    print(drift_df.round(4).to_string(index=False), "\n")
 
+    os.makedirs("results", exist_ok=True)
+    prefix = "ablation_" if args.ablate else ""
+    results.to_csv(f"results/{prefix}threshold_results.csv", index=False)
+    drift_df.to_csv(f"results/{prefix}drift_results.csv", index=False)
+    speed_df.to_csv(f"results/{prefix}speed_results.csv", index=False)
     results.to_csv("threshold_results.csv", index=False)
 
     # sample alert for the shared schema
@@ -171,7 +217,7 @@ def main():
                        top.iloc[0]["score"], {"start": "row_index", "end": "row_index"})
     with open("sample_alert.json", "w") as f:
         json.dump(alert, f, indent=2)
-    print("Wrote threshold_results.csv and sample_alert.json")
+    print(f"Wrote results/{prefix}threshold_results.csv, results/{prefix}drift_results.csv, results/{prefix}speed_results.csv, and sample_alert.json")
 
 
 if __name__ == "__main__":
