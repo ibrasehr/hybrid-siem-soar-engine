@@ -180,21 +180,36 @@ def drift_test(df, features, rf_params, benign="BENIGN"):
     return pd.DataFrame(rows)
 
 
-def make_alert(rf, features, X_row, event_ids, score, window):
+def make_alert(rf, features, X_row, event_ids, score, window, rules=None):
     imp = pd.Series(rf.feature_importances_, index=features).nlargest(5)
-    return {
+    rules_fired = []
+    if rules is not None:
+        for rule in rules.rules:
+            try:
+                if bool(rule(X_row, rules.limits)):
+                    rules_fired.append(rule.__name__)
+            except Exception:
+                pass
+    alert = {
         "incident_id": f"INC-{int(event_ids[0]):08d}",
         "confidence": round(float(score), 4),
         "contributing_event_ids": [int(e) for e in event_ids],
         "time_window": window,
         "trace": {
             "model": "random_forest",
+            "rules_fired": rules_fired,
             "top_features": [
                 {"feature": f, "importance": round(float(i), 4),
                  "observed_value": float(X_row[f])} for f, i in imp.items()
             ],
         },
     }
+    schema_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "schema.json")
+    if os.path.exists(schema_path):
+        import jsonschema
+        with open(schema_path, "r", encoding="utf-8") as f:
+            jsonschema.validate(instance=alert, schema=json.load(f))
+    return alert
 
 
 def main():
@@ -225,6 +240,7 @@ def main():
     base_rf = None
     base_test = None
     base_rf_scores = None
+    base_rules = None
 
     for i in range(args.seeds):
         seed = 42 + i
@@ -244,6 +260,7 @@ def main():
             base_rf = s_rf
             base_test = s_test
             base_rf_scores = s_rf_scores
+            base_rules = s_rules
 
     all_seeds_df = pd.concat(seed_sweeps, ignore_index=True)
     multiseed_summary = (
@@ -284,8 +301,9 @@ def main():
 
     # sample alert for the shared schema
     top = base_test.assign(score=base_rf_scores).sort_values("score", ascending=False).head(3)
-    alert = make_alert(base_rf, features, top.iloc[0][features], top["event_id"].to_numpy(),
-                       top.iloc[0]["score"], {"start": "row_index", "end": "row_index"})
+    alert = make_alert(base_rf, features, top.iloc[0], top["event_id"].to_numpy(),
+                       top.iloc[0]["score"], {"start": "row_index", "end": "row_index"},
+                       rules=base_rules)
     with open("sample_alert.json", "w") as f:
         json.dump(alert, f, indent=2)
     print(f"Wrote results/{prefix}threshold_multiseed.csv, results/{prefix}threshold_results.csv, results/{prefix}drift_results.csv, results/{prefix}speed_results.csv, and sample_alert.json")
