@@ -3,3 +3,5 @@ data/
 *.csv
 !results/*.csv
 __pycache__/
+alerts_full.jsonl
+scratch/
