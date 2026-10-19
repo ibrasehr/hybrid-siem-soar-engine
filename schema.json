@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AlertSchema",
+  "type": "object",
+  "required": [
+    "incident_id",
+    "confidence",
+    "contributing_event_ids",
+    "time_window",
+    "trace"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "incident_id": {
+      "type": "string"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "contributing_event_ids": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      }
+    },
+    "time_window": {
+      "type": "object",
+      "required": [
+        "start",
+        "end"
+      ],
+      "properties": {
+        "start": {
+          "type": ["string", "number"]
+        },
+        "end": {
+          "type": ["string", "number"]
+        }
+      }
+    },
+    "trace": {
+      "type": "object",
+      "required": [
+        "model",
+        "rules_fired",
+        "top_features"
+      ],
+      "properties": {
+        "model": {
+          "type": "string"
+        },
+        "rules_fired": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "top_features": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "feature",
+              "importance",
+              "observed_value"
+            ],
+            "properties": {
+              "feature": {
+                "type": "string"
+              },
+              "importance": {
+                "type": "number"
+              },
+              "observed_value": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
