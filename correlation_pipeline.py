@@ -64,22 +64,63 @@ def load(csv, label_col, benign):
     return df, features
 
 
-class RuleEngine:
-    """Wazuh-style baseline: each rule fires when a feature exceeds the
-    99th percentile of benign training traffic. Score = fraction of rules fired."""
+def rule_high_packet_rate(df, limits):
+    """Targets volumetric DoS and flooding attacks by detecting packet transmission rates exceeding benign norms."""
+    return df["rate"] > limits["rate"]
 
-    def __init__(self, rule_features, pct=99):
-        self.rule_features = rule_features
+
+def rule_packet_asymmetry(df, limits):
+    """Targets scanning, reconnaissance, and unilateral floods where outbound source packets vastly exceed inbound responses."""
+    ratio = df["spkts"] / (df["dpkts"] + 1)
+    return ratio > limits["spkts_ratio"]
+
+
+def rule_high_srv_connections(df, limits):
+    """Targets service-level port scans and brute-force sweeps that create dense connection counts to the same service."""
+    return df["ct_srv_src"] > limits["ct_srv_src"]
+
+
+def rule_high_dst_density(df, limits):
+    """Targets host scanning, probing, and DoS targeting a concentrated destination within a short time window."""
+    return df["ct_dst_ltm"] > limits["ct_dst_ltm"]
+
+
+def rule_short_duration_burst(df, limits):
+    """Targets exploit attempts and fast probe bursts delivering high packet volumes over near-zero connection duration."""
+    burst = df["spkts"] / (df["dur"] + 0.001)
+    return burst > limits["burst_density"]
+
+
+HAND_CRAFTED_RULES = [
+    rule_high_packet_rate,
+    rule_packet_asymmetry,
+    rule_high_srv_connections,
+    rule_high_dst_density,
+    rule_short_duration_burst,
+]
+
+
+class RuleEngine:
+    """Wazuh-style baseline using 5 hand-crafted behavioral rules fitted on benign training traffic.
+    Score = fraction of rules that fired (0.0 to 1.0)."""
+
+    def __init__(self, rules=HAND_CRAFTED_RULES, pct=99):
+        self.rules = rules
         self.pct = pct
         self.limits = {}
 
-    def fit(self, X_benign):
-        for f in self.rule_features:
-            self.limits[f] = np.percentile(X_benign[f], self.pct)
+    def fit(self, df_benign):
+        self.limits["rate"] = float(np.percentile(df_benign["rate"], self.pct))
+        ratio = df_benign["spkts"] / (df_benign["dpkts"] + 1)
+        self.limits["spkts_ratio"] = float(np.percentile(ratio, self.pct))
+        self.limits["ct_srv_src"] = float(np.percentile(df_benign["ct_srv_src"], self.pct))
+        self.limits["ct_dst_ltm"] = float(np.percentile(df_benign["ct_dst_ltm"], self.pct))
+        burst = df_benign["spkts"] / (df_benign["dur"] + 0.001)
+        self.limits["burst_density"] = float(np.percentile(burst, self.pct))
         return self
 
-    def score(self, X):
-        fired = np.column_stack([(X[f] > lim).to_numpy() for f, lim in self.limits.items()])
+    def score(self, df):
+        fired = np.column_stack([rule(df, self.limits).to_numpy() for rule in self.rules])
         return fired.mean(axis=1)
 
 
@@ -163,6 +204,7 @@ def main():
     ap.add_argument("--benign", default="BENIGN")
     ap.add_argument("--sample", type=int, default=200000, help="max rows to use")
     ap.add_argument("--ablate", default="", help="comma-separated feature names to drop before training")
+    ap.add_argument("--seeds", type=int, default=5, help="number of seeds for train/test split evaluation")
     args = ap.parse_args()
 
     df, features = load(args.csv, args.label_col, args.benign)
@@ -177,47 +219,76 @@ def main():
     print(f"Rows: {len(df)}  Features: {len(features)}")
     print(df["family"].value_counts().head(10), "\n")
 
-    train, test = train_test_split(df, test_size=0.3, stratify=df["is_attack"], random_state=42)
-    rf_params = dict(n_estimators=100, n_jobs=-1, random_state=42)
+    rf_params = dict(n_estimators=100, n_jobs=-1)
 
-    rf = RandomForestClassifier(**rf_params).fit(train[features], train["is_attack"])
-    rf_scores = rf.predict_proba(test[features])[:, 1]
+    seed_sweeps = []
+    base_rf = None
+    base_test = None
+    base_rf_scores = None
 
-    # pick rule features: top 5 by RF importance (replace with hand-chosen rules if you prefer)
-    rule_feats = list(pd.Series(rf.feature_importances_, index=features).nlargest(5).index)
-    rules = RuleEngine(rule_feats).fit(train[train["is_attack"] == 0][features])
-    rule_scores = rules.score(test[features])
+    for i in range(args.seeds):
+        seed = 42 + i
+        s_train, s_test = train_test_split(df, test_size=0.3, stratify=df["is_attack"], random_state=seed)
+        s_rf = RandomForestClassifier(**dict(rf_params, random_state=seed)).fit(s_train[features], s_train["is_attack"])
+        s_rf_scores = s_rf.predict_proba(s_test[features])[:, 1]
 
-    results = pd.concat([sweep(test["is_attack"], rule_scores, "rule_baseline"),
-                         sweep(test["is_attack"], rf_scores, "random_forest")])
-    print("== Threshold sweep (Pillar 3) ==")
-    print(results.round(4).to_string(index=False), "\n")
+        s_rules = RuleEngine().fit(s_train[s_train["is_attack"] == 0])
+        s_rule_scores = s_rules.score(s_test)
+
+        s_res = pd.concat([sweep(s_test["is_attack"], s_rule_scores, "rule_baseline"),
+                           sweep(s_test["is_attack"], s_rf_scores, "random_forest")])
+        s_res["seed"] = seed
+        seed_sweeps.append(s_res)
+
+        if i == 0:
+            base_rf = s_rf
+            base_test = s_test
+            base_rf_scores = s_rf_scores
+
+    all_seeds_df = pd.concat(seed_sweeps, ignore_index=True)
+    multiseed_summary = (
+        all_seeds_df.groupby(["model", "threshold"])
+        .agg(
+            recall_mean=("recall", "mean"),
+            recall_std=("recall", "std"),
+            fpr_mean=("fpr", "mean"),
+            fpr_std=("fpr", "std"),
+            precision_mean=("precision", "mean"),
+            precision_std=("precision", "std"),
+        )
+        .reset_index()
+    )
+
+    print(f"== Multi-seed Threshold Sweep ({args.seeds} seeds) (Pillar 3) ==")
+    print(multiseed_summary.round(4).to_string(index=False), "\n")
 
     print("== Speed on this machine (Pillar 1) ==")
     cpu, ram = get_system_specs()
     print(f"CPU Model: {cpu}")
     print(f"RAM: {ram}")
-    speed_df = measure_speed(rf, test[features])
+    speed_df = measure_speed(base_rf, base_test[features])
     print(speed_df.round(4).to_string(index=False), "\n")
 
     print("== Drift: leave-one-family-out (Pillar 2) ==")
-    drift_df = drift_test(df, features, rf_params, args.benign)
+    drift_df = drift_test(df, features, dict(rf_params, random_state=42), args.benign)
     print(drift_df.round(4).to_string(index=False), "\n")
 
     os.makedirs("results", exist_ok=True)
     prefix = "ablation_" if args.ablate else ""
-    results.to_csv(f"results/{prefix}threshold_results.csv", index=False)
+    multiseed_summary.to_csv(f"results/{prefix}threshold_multiseed.csv", index=False)
+    single_seed_results = all_seeds_df[all_seeds_df["seed"] == 42].drop(columns=["seed"])
+    single_seed_results.to_csv(f"results/{prefix}threshold_results.csv", index=False)
     drift_df.to_csv(f"results/{prefix}drift_results.csv", index=False)
     speed_df.to_csv(f"results/{prefix}speed_results.csv", index=False)
-    results.to_csv("threshold_results.csv", index=False)
+    multiseed_summary.to_csv("threshold_results.csv", index=False)
 
     # sample alert for the shared schema
-    top = test.assign(score=rf_scores).sort_values("score", ascending=False).head(3)
-    alert = make_alert(rf, features, top.iloc[0][features], top["event_id"].to_numpy(),
+    top = base_test.assign(score=base_rf_scores).sort_values("score", ascending=False).head(3)
+    alert = make_alert(base_rf, features, top.iloc[0][features], top["event_id"].to_numpy(),
                        top.iloc[0]["score"], {"start": "row_index", "end": "row_index"})
     with open("sample_alert.json", "w") as f:
         json.dump(alert, f, indent=2)
-    print(f"Wrote results/{prefix}threshold_results.csv, results/{prefix}drift_results.csv, results/{prefix}speed_results.csv, and sample_alert.json")
+    print(f"Wrote results/{prefix}threshold_multiseed.csv, results/{prefix}threshold_results.csv, results/{prefix}drift_results.csv, results/{prefix}speed_results.csv, and sample_alert.json")
 
 
 if __name__ == "__main__":

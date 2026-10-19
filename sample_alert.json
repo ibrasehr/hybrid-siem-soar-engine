@@ -3,8 +3,8 @@
   "confidence": 1.0,
   "contributing_event_ids": [
     18198,
-    56335,
-    57492
+    13782,
+    18859
   ],
   "time_window": {
     "start": "row_index",
@@ -14,29 +14,29 @@
     "model": "random_forest",
     "top_features": [
       {
-        "feature": "ct_dst_src_ltm",
-        "importance": 0.0943,
-        "observed_value": 35.0
-      },
-      {
-        "feature": "sttl",
-        "importance": 0.0842,
-        "observed_value": 254.0
-      },
-      {
-        "feature": "ct_state_ttl",
-        "importance": 0.0616,
-        "observed_value": 2.0
+        "feature": "sload",
+        "importance": 0.084,
+        "observed_value": 65142856.0
       },
       {
         "feature": "sbytes",
-        "importance": 0.0594,
+        "importance": 0.0707,
         "observed_value": 114.0
       },
       {
         "feature": "ct_dst_sport_ltm",
-        "importance": 0.0593,
+        "importance": 0.0697,
         "observed_value": 17.0
+      },
+      {
+        "feature": "smean",
+        "importance": 0.0656,
+        "observed_value": 57.0
+      },
+      {
+        "feature": "ct_srv_dst",
+        "importance": 0.0627,
+        "observed_value": 35.0
       }
     ]
   }
