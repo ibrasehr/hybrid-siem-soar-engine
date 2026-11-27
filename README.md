@@ -149,3 +149,31 @@ The dashboard loads `data/alerts_full.jsonl` if present, otherwise the `alerts.j
 3. **Simulated asset criticality**: criticality is derived from a stable hash of the target (replace it with `AssetRegistry.from_csv(...)` for a real inventory), so BDI figures illustrate the mechanism, not a real environment.
 4. **Biased sample**: `alerts.json` holds 50 highest-confidence plus 50 random alerts. Use `alerts_full.jsonl` for any reported numbers.
 5. **One active containment per target**, and the feedback loop stops at logging plus a threshold suggestion; automatic retraining is future work.
+
+## Insider Threat Detection Module
+
+UEBA behavioral anomaly detection module (`insider_threat_engine.py`) combining a pre-trained Random Forest classifier (`models/insider_threat_model.pkl`) with per-user behavioral rule checks on CERT-style activity logs.
+
+### Features & Behavioral Rules
+
+`InsiderThreatEngine.build_features(events)` aggregates raw activity logs (`event_id`, `timestamp`, `user`, `event_type`) per user into 9 features (`total_events`, `http_count`, `device_count`, `email_count`, `logon_count`, `file_count`, `after_hours_count`, `weekend_count`, `active_days`).
+
+`InsiderThreatEngine.predict(events)` emits `source = "insider_threat"` (matching `response_engine/catalog.py` actions `step_up_mfa` / `suspend_session`), Random Forest attack probability (`confidence`), `predicted_label`, and `apply_rules()` flags:
+
+- `High event volume` (`total_events >= 100`)
+- `Excessive web activity` (`http_count >= 100`)
+- `Unusual device usage` (`device_count >= 5`)
+- `Excessive file activity` (`file_count >= 3`)
+- `Unusual after-hours activity` (`after_hours_count > 6`, outside 08:00–18:00)
+
+### Artifacts & Dashboard
+
+- `models/insider_threat_model.pkl` & `models/insider_threat_features.pkl`: Serialized Random Forest classifier and expected feature column list.
+- `data/insider_threat_predictions.csv`: SOAR-compatible prediction table (`id`, `source`, `confidence`, `true_label`) consumable by `response_engine.load_insider_csv()`.
+- `data/insider_threat_alerts.json`: Precomputed alert records rendered on the **Insider Threat** Streamlit page (`dashboard/pages/2_Insider_Threat.py`), which also supports live CSV upload (`event_id`/`id`, `timestamp`, `user`, `event_type`/`file`).
+
+### Running Insider Threat Tests
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -v tests/test_insider_threat_engine.py
+```
