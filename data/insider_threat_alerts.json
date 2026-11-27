@@ -1,0 +1,284 @@
+[
+    {
+        "user": "AJR0932",
+        "source": "insider_threat",
+        "confidence": 0.99,
+        "predicted_label": 1,
+        "rule_alert": 1,
+        "rule_reasons": [
+            "High event volume",
+            "Excessive web activity",
+            "Unusual after-hours activity"
+        ],
+        "severity": "High"
+    },
+    {
+        "user": "BDV0168",
+        "source": "insider_threat",
+        "confidence": 1.0,
+        "predicted_label": 1,
+        "rule_alert": 1,
+        "rule_reasons": [
+            "High event volume",
+            "Excessive web activity",
+            "Unusual device usage",
+            "Unusual after-hours activity"
+        ],
+        "severity": "High"
+    },
+    {
+        "user": "BIH0745",
+        "source": "insider_threat",
+        "confidence": 0.85,
+        "predicted_label": 1,
+        "rule_alert": 1,
+        "rule_reasons": [
+            "High event volume",
+            "Excessive web activity"
+        ],
+        "severity": "High"
+    },
+    {
+        "user": "BTL0226",
+        "source": "insider_threat",
+        "confidence": 1.0,
+        "predicted_label": 1,
+        "rule_alert": 1,
+        "rule_reasons": [
+            "High event volume",
+            "Excessive web activity",
+            "Unusual device usage",
+            "Unusual after-hours activity"
+        ],
+        "severity": "High"
+    },
+    {
+        "user": "CAH0936",
+        "source": "insider_threat",
+        "confidence": 1.0,
+        "predicted_label": 1,
+        "rule_alert": 1,
+        "rule_reasons": [
+            "High event volume",
+            "Excessive web activity",
+            "Unusual after-hours activity"
+        ],
+        "severity": "High"
+    },
+    {
+        "user": "EHB0824",
+        "source": "insider_threat",
+        "confidence": 0.81,
+        "predicted_label": 1,
+        "rule_alert": 1,
+        "rule_reasons": [
+            "Unusual device usage",
+            "Unusual after-hours activity"
+        ],
+        "severity": "High"
+    },
+    {
+        "user": "FTM0406",
+        "source": "insider_threat",
+        "confidence": 0.32,
+        "predicted_label": 0,
+        "rule_alert": 1,
+        "rule_reasons": [
+            "High event volume",
+            "Excessive web activity"
+        ],
+        "severity": "Medium"
+    },
+    {
+        "user": "JMB0308",
+        "source": "insider_threat",
+        "confidence": 1.0,
+        "predicted_label": 1,
+        "rule_alert": 1,
+        "rule_reasons": [
+            "High event volume",
+            "Excessive web activity",
+            "Unusual device usage",
+            "Unusual after-hours activity"
+        ],
+        "severity": "High"
+    },
+    {
+        "user": "KLH0596",
+        "source": "insider_threat",
+        "confidence": 0.88,
+        "predicted_label": 1,
+        "rule_alert": 1,
+        "rule_reasons": [
+            "High event volume",
+            "Excessive web activity",
+            "Unusual after-hours activity"
+        ],
+        "severity": "High"
+    },
+    {
+        "user": "KPC0073",
+        "source": "insider_threat",
+        "confidence": 1.0,
+        "predicted_label": 1,
+        "rule_alert": 1,
+        "rule_reasons": [
+            "High event volume",
+            "Excessive web activity",
+            "Unusual device usage",
+            "Unusual after-hours activity"
+        ],
+        "severity": "High"
+    },
+    {
+        "user": "MAS0025",
+        "source": "insider_threat",
+        "confidence": 1.0,
+        "predicted_label": 1,
+        "rule_alert": 1,
+        "rule_reasons": [
+            "High event volume",
+            "Excessive web activity",
+            "Unusual after-hours activity"
+        ],
+        "severity": "High"
+    },
+    {
+        "user": "MDH0580",
+        "source": "insider_threat",
+        "confidence": 0.99,
+        "predicted_label": 1,
+        "rule_alert": 1,
+        "rule_reasons": [
+            "High event volume",
+            "Excessive web activity",
+            "Unusual device usage",
+            "Excessive file activity",
+            "Unusual after-hours activity"
+        ],
+        "severity": "High"
+    },
+    {
+        "user": "MYD0978",
+        "source": "insider_threat",
+        "confidence": 1.0,
+        "predicted_label": 1,
+        "rule_alert": 1,
+        "rule_reasons": [
+            "High event volume",
+            "Excessive web activity",
+            "Unusual device usage",
+            "Unusual after-hours activity"
+        ],
+        "severity": "High"
+    },
+    {
+        "user": "NWT0098",
+        "source": "insider_threat",
+        "confidence": 0.96,
+        "predicted_label": 1,
+        "rule_alert": 1,
+        "rule_reasons": [
+            "High event volume",
+            "Excessive web activity",
+            "Unusual device usage",
+            "Excessive file activity",
+            "Unusual after-hours activity"
+        ],
+        "severity": "High"
+    },
+    {
+        "user": "PNL0301",
+        "source": "insider_threat",
+        "confidence": 0.62,
+        "predicted_label": 1,
+        "rule_alert": 0,
+        "rule_reasons": [],
+        "severity": "Medium"
+    },
+    {
+        "user": "PPF0435",
+        "source": "insider_threat",
+        "confidence": 0.77,
+        "predicted_label": 1,
+        "rule_alert": 1,
+        "rule_reasons": [
+            "High event volume",
+            "Excessive web activity",
+            "Unusual after-hours activity"
+        ],
+        "severity": "Medium"
+    },
+    {
+        "user": "PSF0133",
+        "source": "insider_threat",
+        "confidence": 0.92,
+        "predicted_label": 1,
+        "rule_alert": 1,
+        "rule_reasons": [
+            "High event volume",
+            "Excessive web activity",
+            "Unusual device usage",
+            "Excessive file activity",
+            "Unusual after-hours activity"
+        ],
+        "severity": "High"
+    },
+    {
+        "user": "RAB0589",
+        "source": "insider_threat",
+        "confidence": 1.0,
+        "predicted_label": 1,
+        "rule_alert": 1,
+        "rule_reasons": [
+            "High event volume",
+            "Excessive web activity",
+            "Unusual device usage",
+            "Unusual after-hours activity"
+        ],
+        "severity": "High"
+    },
+    {
+        "user": "RAR0725",
+        "source": "insider_threat",
+        "confidence": 1.0,
+        "predicted_label": 1,
+        "rule_alert": 1,
+        "rule_reasons": [
+            "High event volume",
+            "Excessive web activity",
+            "Unusual device usage",
+            "Excessive file activity",
+            "Unusual after-hours activity"
+        ],
+        "severity": "High"
+    },
+    {
+        "user": "TNM0961",
+        "source": "insider_threat",
+        "confidence": 1.0,
+        "predicted_label": 1,
+        "rule_alert": 1,
+        "rule_reasons": [
+            "High event volume",
+            "Excessive web activity",
+            "Unusual device usage",
+            "Excessive file activity",
+            "Unusual after-hours activity"
+        ],
+        "severity": "High"
+    },
+    {
+        "user": "WDD0366",
+        "source": "insider_threat",
+        "confidence": 0.94,
+        "predicted_label": 1,
+        "rule_alert": 1,
+        "rule_reasons": [
+            "High event volume",
+            "Excessive web activity",
+            "Unusual after-hours activity"
+        ],
+        "severity": "High"
+    }
+]

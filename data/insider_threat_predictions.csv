@@ -1,0 +1,13 @@
+id,source,confidence,true_label
+MOS0047,insider_threat,0.18,1
+WDD0366,insider_threat,0.94,1
+YWW0660,insider_threat,0.0,0
+CMS0454,insider_threat,0.0,0
+PTH0552,insider_threat,0.0,0
+PSF0133,insider_threat,0.92,1
+HDS0367,insider_threat,0.0,0
+NRD0548,insider_threat,0.0,0
+MAS0025,insider_threat,1.0,1
+CCA0046,insider_threat,0.0,0
+PPF0435,insider_threat,0.77,1
+EIS0041,insider_threat,0.0,0
